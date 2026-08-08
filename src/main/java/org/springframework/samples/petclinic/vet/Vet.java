@@ -33,8 +33,7 @@ import jakarta.persistence.Table;
 import jakarta.xml.bind.annotation.XmlElement;
 
 /**
- * Simple JavaBean domain object representing a veterinarian.
- * small test change
+ * Simple JavaBean domain object representing a veterinarian. small test change
  *
  * @author Ken Krebs
  * @author Juergen Hoeller

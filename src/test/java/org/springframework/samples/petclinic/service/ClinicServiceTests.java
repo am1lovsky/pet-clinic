@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.springframework.dao.DataIntegrityViolationException;
+
 import java.time.LocalDate;
 import java.util.Collection;
 import java.util.Optional;
@@ -31,12 +32,7 @@ import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabas
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase.Replace;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.samples.petclinic.owner.Owner;
-import org.springframework.samples.petclinic.owner.OwnerRepository;
-import org.springframework.samples.petclinic.owner.Pet;
-import org.springframework.samples.petclinic.owner.PetType;
-import org.springframework.samples.petclinic.owner.PetTypeRepository;
-import org.springframework.samples.petclinic.owner.Visit;
+import org.springframework.samples.petclinic.owner.*;
 import org.springframework.samples.petclinic.vet.Vet;
 import org.springframework.samples.petclinic.vet.VetRepository;
 import org.springframework.transaction.annotation.Transactional;
@@ -75,6 +71,8 @@ import org.springframework.transaction.annotation.Transactional;
 // @TestPropertySource("/application-postgres.properties")
 class ClinicServiceTests {
 
+	private final VisitService visitService = new VisitService();
+
 	@Autowired
 	protected OwnerRepository owners;
 
@@ -93,6 +91,91 @@ class ClinicServiceTests {
 
 		owners = this.owners.findByLastNameStartingWith("Daviss", pageable);
 		assertThat(owners).isEmpty();
+	}
+
+	@Test
+	void shouldReturnTrueIfDateIsPast() {
+		boolean result = visitService.isPastDate(LocalDate.now().minusDays(1));
+		assertThat(result).isTrue();
+	}
+
+	@Test
+	void shouldReturnTrueIfExistsOtherVisitOnSameDate() {
+		Visit existingVisit = new Visit();
+		existingVisit.setDate(LocalDate.now());
+		Pet pet = new Pet();
+		Visit newVisit = new Visit();
+		newVisit.setDate(LocalDate.now());
+		pet.addVisit(existingVisit);
+		boolean result = visitService.hasVisitOnSameDay(pet, newVisit);
+		assertThat(result).isTrue();
+	}
+
+	@Test
+	void shouldReturnFalseIfNoOtherVisitOnSameDate() {
+		Visit visit = new Visit();
+		visit.setDate(LocalDate.now().plusDays(1));
+		Pet pet = new Pet();
+		pet.addVisit(visit);
+		boolean result = visitService.hasVisitOnSameDay(pet, visit);
+		assertThat(result).isFalse();
+	}
+
+	@Test
+	void shouldReturnTrueIfNeedVisit() {
+		Pet pet = new Pet();
+		Visit visit = new Visit();
+		visit.setDate(LocalDate.now().minusYears(2));
+		pet.addVisit(visit);
+		boolean result = visitService.isNeedVisit(pet);
+		assertThat(result).isTrue();
+	}
+
+	@Test
+	void shouldReturnFalseIfNeedNoVisit() {
+		Pet pet = new Pet();
+		Visit visit = new Visit();
+		visit.setDate(LocalDate.now().plusDays(1));
+		pet.addVisit(visit);
+		boolean result = visitService.isNeedVisit(pet);
+		assertThat(result).isFalse();
+	}
+
+	@Test
+	void shouldReturnTrueIfNoVisits() {
+		Pet pet = new Pet();
+		boolean result = visitService.isNeedVisit(pet);
+		assertThat(result).isTrue();
+	}
+
+	@Test
+	void shouldReturnTrueIfMoreThen3VisitsLastYear() {
+		Pet pet = new Pet();
+		for (int i = 0; i < 3; i++) {
+			Visit visit = new Visit();
+			visit.setDate(LocalDate.now().minusDays(1));
+			pet.addVisit(visit);
+		}
+		boolean result = visitService.isFrequentVisitor(pet);
+		assertThat(result).isTrue();
+	}
+
+	@Test
+	void shouldReturnTrueIfPetOlderThen3Years() {
+		Pet pet = new Pet();
+		pet.setBirthDate(LocalDate.now().minusYears(9));
+		boolean result = visitService.isSenior(pet);
+		assertThat(result).isTrue();
+	}
+
+	@Test
+	void shouldReturnTrueIfEmergencyIsInsideDescription() {
+		Visit visit = new Visit();
+		visit.setDescription("acd emergency abc");
+		Pet pet = new Pet();
+		pet.addVisit(visit);
+		boolean result = visitService.hasEmergencyHistory(pet);
+		assertThat(result).isTrue();
 	}
 
 	@Test
@@ -299,7 +382,7 @@ class ClinicServiceTests {
 
 		Pet pet2 = new Pet();
 		pet2.setName("samepetname"); // Case-insensitive duplicate name, but for a
-										// different owner
+		// different owner
 		pet2.setType(catType);
 		pet2.setBirthDate(LocalDate.now());
 		owner2.addPet(pet2);

@@ -27,12 +27,7 @@ import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.WebDataBinder;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.InitBinder;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
 
@@ -54,9 +49,12 @@ class PetController {
 
 	private final PetTypeRepository types;
 
-	public PetController(OwnerRepository owners, PetTypeRepository types) {
+	private final VisitService visitService;
+
+	public PetController(OwnerRepository owners, PetTypeRepository types, VisitService visitService) {
 		this.owners = owners;
 		this.types = types;
+		this.visitService = visitService;
 	}
 
 	@ModelAttribute("types")
@@ -67,9 +65,8 @@ class PetController {
 	@ModelAttribute("owner")
 	public Owner findOwner(@PathVariable("ownerId") int ownerId) {
 		Optional<Owner> optionalOwner = this.owners.findById(ownerId);
-		Owner owner = optionalOwner.orElseThrow(() -> new IllegalArgumentException(
+		return optionalOwner.orElseThrow(() -> new IllegalArgumentException(
 				"Owner not found with id: " + ownerId + ". Please ensure the ID is correct "));
-		return owner;
 	}
 
 	@ModelAttribute("pet")
@@ -197,6 +194,23 @@ class PetController {
 			owner.addPet(pet);
 		}
 		this.owners.saveAndFlush(owner);
+	}
+
+	@GetMapping("/pets/{petId}/is-need-visit")
+	public @ResponseBody boolean isNeedVisit(@PathVariable("ownerId") int ownerId, @PathVariable("petId") int petId) {
+		Optional<Owner> optionalOwner = owners.findById(ownerId);
+		Owner owner = optionalOwner.orElseThrow(IllegalArgumentException::new);
+		Pet pet = owner.getPet(petId);
+		return visitService.isNeedVisit(pet);
+	}
+
+	@GetMapping("/pets/{petId}/priority")
+	public @ResponseBody PetPriority getPriority(@PathVariable("ownerId") int ownerId,
+			@PathVariable("petId") int petId) {
+		Optional<Owner> optionalOwner = owners.findById(ownerId);
+		Owner owner = optionalOwner.orElseThrow(IllegalArgumentException::new);
+		Pet pet = owner.getPet(petId);
+		return visitService.getPriority(pet);
 	}
 
 	private boolean isDuplicatePetNameViolation(DataIntegrityViolationException ex) {

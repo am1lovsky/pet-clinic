@@ -20,6 +20,8 @@ import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 /**
  * Repository class for <code>Owner</code> domain objects. All method names are compliant
@@ -58,5 +60,14 @@ public interface OwnerRepository extends JpaRepository<Owner, Integer> {
 	 * input for id)
 	 */
 	Optional<Owner> findById(Integer id);
+
+	/**
+	 * Count the number of {@link Pet}s belonging to the {@link Owner} with the given id,
+	 * without loading the owner or its pets into memory.
+	 * @param ownerId the id of the owner
+	 * @return the number of pets belonging to the owner
+	 */
+	@Query("SELECT COUNT(p) FROM Owner o JOIN o.pets p WHERE o.id = :ownerId")
+	int countPetsByOwnerId(@Param("ownerId") Integer ownerId);
 
 }

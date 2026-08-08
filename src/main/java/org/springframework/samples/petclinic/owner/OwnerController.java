@@ -22,7 +22,9 @@ import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.WebDataBinder;
@@ -32,6 +34,8 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.ModelAndView;
 
 import jakarta.validation.Valid;
@@ -174,6 +178,20 @@ class OwnerController {
 				"Owner not found with id: " + ownerId + ". Please ensure the ID is correct "));
 		mav.addObject(owner);
 		return mav;
+	}
+
+	/**
+	 * Custom handler for displaying the number of pets an owner has, without loading the
+	 * owner or its pets into memory.
+	 * @param ownerId the ID of the owner
+	 * @return the count of pets belonging to the owner
+	 */
+	@GetMapping("/owners/{ownerId}/pets/count")
+	public @ResponseBody int getPetsCount(@PathVariable("ownerId") int ownerId) {
+		if (!this.owners.existsById(ownerId)) {
+			throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Owner not found with id: " + ownerId);
+		}
+		return this.owners.countPetsByOwnerId(ownerId);
 	}
 
 }
