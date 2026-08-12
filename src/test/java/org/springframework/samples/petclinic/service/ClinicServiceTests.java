@@ -18,7 +18,12 @@ package org.springframework.samples.petclinic.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.BDDMockito.given;
 
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
 
 import java.time.LocalDate;
@@ -69,9 +74,20 @@ import org.springframework.transaction.annotation.Transactional;
 // Ensure that if the mysql profile is active we connect to the real database:
 @AutoConfigureTestDatabase(replace = Replace.NONE)
 // @TestPropertySource("/application-postgres.properties")
+@ExtendWith(MockitoExtension.class)
 class ClinicServiceTests {
 
 	private final VisitService visitService = new VisitService();
+
+	@Mock
+	VisitRepository visitRepository;
+
+	private VetService vetService;
+
+	@BeforeEach
+	void setUpVetService() {
+		vetService = new VetService(visitRepository);
+	}
 
 	@Autowired
 	protected OwnerRepository owners;
@@ -91,6 +107,46 @@ class ClinicServiceTests {
 
 		owners = this.owners.findByLastNameStartingWith("Daviss", pageable);
 		assertThat(owners).isEmpty();
+	}
+
+	@Test
+	void shouldReturnTrueIfMoreThen5VisitsByVetIn7Days() {
+		Vet vet = new Vet();
+		vet.setId(1);
+		LocalDate sevenDaysAgo = LocalDate.now().minusDays(7);
+
+		// Stubbed with the exact cutoff date: if isOverloaded() computed a different
+		// date, this stub would not match and the mock would fall back to its default
+		// (0), making the assertion below fail.
+		given(visitRepository.countByVetIdAndDateGreaterThanEqual(vet.getId(), sevenDaysAgo)).willReturn(6L);
+
+		boolean result = vetService.isOverloaded(vet);
+		assertThat(result).isTrue();
+	}
+
+	@Test
+	void shouldReturnFalseIfNotMoreThen5VisitsByVetIn7Days() {
+		Vet vet = new Vet();
+		vet.setId(1);
+		LocalDate sevenDaysAgo = LocalDate.now().minusDays(7);
+
+		given(visitRepository.countByVetIdAndDateGreaterThanEqual(vet.getId(), sevenDaysAgo)).willReturn(4L);
+
+		boolean result = vetService.isOverloaded(vet);
+		assertThat(result).isFalse();
+	}
+
+	@Test
+	void shouldReturnWorkloadWithVisitCountAndOverloadedFlag() {
+		Vet vet = new Vet();
+		vet.setId(2);
+		LocalDate sevenDays = LocalDate.now().minusDays(7);
+
+		given(visitRepository.countByVetIdAndDateGreaterThanEqual(vet.getId(), sevenDays)).willReturn(6L);
+
+		Workload workload = vetService.getWorkload(vet);
+		assertThat(workload.getVisitCount()).isEqualTo(6L);
+		assertThat(workload.isOverloaded()).isTrue();
 	}
 
 	@Test

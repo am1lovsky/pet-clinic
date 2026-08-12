@@ -33,7 +33,7 @@ public class PetPriority {
 		this.reasons = reasons;
 	}
 
-	public boolean isPriority() {
+	public boolean hasPriority() {
 		return this.priority;
 	}
 

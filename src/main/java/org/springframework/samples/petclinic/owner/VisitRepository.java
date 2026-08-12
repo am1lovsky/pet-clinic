@@ -15,6 +15,8 @@
  */
 package org.springframework.samples.petclinic.owner;
 
+import java.time.LocalDate;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 
 /**
@@ -31,6 +33,16 @@ public interface VisitRepository extends JpaRepository<Visit, Integer> {
 	 * @param vetId the id of the vet
 	 * @return the number of visits performed by the vet
 	 */
-	long countByVetId(Integer vetId);
+	long countVisitsByVetId(Integer vetId);
+
+	/**
+	 * Count the number of {@link Visit}s handled by the
+	 * {@link org.springframework.samples.petclinic.vet.Vet} with the given id on or after
+	 * the given date, without loading the visits into memory.
+	 * @param vetId the id of the vet
+	 * @param date the earliest visit date (inclusive) to count from
+	 * @return the number of visits performed by the vet since the given date
+	 */
+	long countByVetIdAndDateGreaterThanEqual(Integer vetId, LocalDate date);
 
 }
