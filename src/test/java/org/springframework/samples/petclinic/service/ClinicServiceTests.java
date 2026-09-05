@@ -127,6 +127,63 @@ class ClinicServiceTests {
 	}
 
 	@Test
+	void shouldReturnTrueIfNeedVisit() {
+		Pet pet = new Pet();
+		Visit visit = new Visit();
+		visit.setDate(LocalDate.now().minusYears(2));
+		pet.addVisit(visit);
+		boolean result = visitService.isNeedVisit(pet);
+		assertThat(result).isTrue();
+	}
+
+	@Test
+	void shouldReturnFalseIfNeedNoVisit() {
+		Pet pet = new Pet();
+		Visit visit = new Visit();
+		visit.setDate(LocalDate.now().plusDays(1));
+		pet.addVisit(visit);
+		boolean result = visitService.isNeedVisit(pet);
+		assertThat(result).isFalse();
+	}
+
+	@Test
+	void shouldReturnTrueIfNeedVisitWhenPetHasNoVisits() {
+		Pet pet = new Pet();
+		boolean result = visitService.isNeedVisit(pet);
+		assertThat(result).isTrue();
+	}
+
+	@Test
+	void shouldReturnTrueIfMoreThan3VisitsLastYear() {
+		Pet pet = new Pet();
+		for (int i = 0; i < 3; i++) {
+			Visit visit = new Visit();
+			visit.setDate(LocalDate.now().minusDays(1));
+			pet.addVisit(visit);
+		}
+		boolean result = visitService.isFrequentVisitor(pet);
+		assertThat(result).isTrue();
+	}
+
+	@Test
+	void shouldReturnTrueIfPetOlderThan8Years() {
+		Pet pet = new Pet();
+		pet.setBirthDate(LocalDate.now().minusYears(9));
+		boolean result = visitService.isSenior(pet);
+		assertThat(result).isTrue();
+	}
+
+	@Test
+	void shouldReturnTrueIfEmergencyIsInsideDescription() {
+		Visit visit = new Visit();
+		visit.setDescription("acd emergency abc");
+		Pet pet = new Pet();
+		pet.addVisit(visit);
+		boolean result = visitService.hasEmergencyHistory(pet);
+		assertThat(result).isTrue();
+	}
+
+	@Test
 	void shouldFindSingleOwnerWithPet() {
 		Optional<Owner> optionalOwner = this.owners.findById(1);
 		assertThat(optionalOwner).isPresent();

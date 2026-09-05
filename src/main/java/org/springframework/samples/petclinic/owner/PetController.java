@@ -33,6 +33,7 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
 
 import jakarta.validation.Valid;
 
@@ -54,9 +55,12 @@ class PetController {
 
 	private final PetTypeRepository types;
 
-	public PetController(OwnerRepository owners, PetTypeRepository types) {
+	private final VisitService visitService;
+
+	public PetController(OwnerRepository owners, PetTypeRepository types, VisitService visitService) {
 		this.owners = owners;
 		this.types = types;
+		this.visitService = visitService;
 	}
 
 	@ModelAttribute("types")
@@ -197,6 +201,16 @@ class PetController {
 			owner.addPet(pet);
 		}
 		this.owners.saveAndFlush(owner);
+	}
+
+	@GetMapping("/pets/{petId}/is-need-visit")
+	public @ResponseBody boolean isNeedVisit(Owner owner, Pet pet) {
+		return visitService.isNeedVisit(pet);
+	}
+
+	@GetMapping("/pets/{petId}/priority")
+	public @ResponseBody PetPriority getPriority(Owner owner, Pet pet) {
+		return visitService.getPriority(pet);
 	}
 
 	private boolean isDuplicatePetNameViolation(DataIntegrityViolationException ex) {

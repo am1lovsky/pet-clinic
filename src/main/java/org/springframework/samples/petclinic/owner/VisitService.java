@@ -16,6 +16,11 @@
 package org.springframework.samples.petclinic.owner;
 
 import java.time.LocalDate;
+import java.time.Period;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 
 import org.springframework.stereotype.Service;
 
@@ -27,6 +32,12 @@ import org.springframework.stereotype.Service;
  */
 @Service
 public class VisitService {
+
+	private static final int FREQUENT_VISITOR_THRESHOLD = 3;
+
+	private static final int SENIOR_PET_AGE_YEARS = 8;
+
+	private static final String EMERGENCY_KEYWORD = "emergency";
 
 	/**
 	 * A visit must be booked for a future date; today or earlier is not allowed.
@@ -50,6 +61,85 @@ public class VisitService {
 			.stream()
 			.filter(existingVisit -> existingVisit != visit)
 			.anyMatch(existingVisit -> date.equals(existingVisit.getDate()));
+	}
+
+	private Optional<LocalDate> lastVisitDate(Pet pet) {
+		return pet.getVisits().stream().map(Visit::getDate).max(LocalDate::compareTo);
+	}
+
+	/**
+	 * A pet needs a visit if it has never been seen, or its last visit was more than a
+	 * year ago.
+	 * @param pet the pet to check
+	 * @return {@code true} if the pet is due for a visit
+	 */
+	public boolean isNeedVisit(Pet pet) {
+		LocalDate yearAgo = LocalDate.now().minusYears(1);
+		return lastVisitDate(pet).map(date -> date.isBefore(yearAgo)).orElse(true);
+	}
+
+	/**
+	 * A pet is a frequent visitor if it has had 3 or more visits in the last 12 months.
+	 * @param pet the pet to check
+	 * @return {@code true} if the pet has 3 or more visits within the last year
+	 */
+	public boolean isFrequentVisitor(Pet pet) {
+		LocalDate yearAgo = LocalDate.now().minusYears(1);
+		return pet.getVisits()
+			.stream()
+			.map(Visit::getDate)
+			.filter(date -> !date.isBefore(yearAgo))
+			.count() >= FREQUENT_VISITOR_THRESHOLD;
+	}
+
+	/**
+	 * A pet is considered senior once it is older than {@value #SENIOR_PET_AGE_YEARS}
+	 * years.
+	 * @param pet the pet to check
+	 * @return {@code true} if the pet's age exceeds the senior threshold
+	 */
+	public boolean isSenior(Pet pet) {
+		LocalDate birthDate = pet.getBirthDate();
+		return birthDate != null && Period.between(birthDate, LocalDate.now()).getYears() > SENIOR_PET_AGE_YEARS;
+	}
+
+	/**
+	 * A pet has an emergency history if any of its visit descriptions mention
+	 * "{@value #EMERGENCY_KEYWORD}".
+	 * @param pet the pet to check
+	 * @return {@code true} if at least one visit description contains the emergency
+	 * keyword
+	 */
+	public boolean hasEmergencyHistory(Pet pet) {
+		return pet.getVisits()
+			.stream()
+			.map(Visit::getDescription)
+			.filter(Objects::nonNull)
+			.anyMatch(description -> description.toLowerCase().contains(EMERGENCY_KEYWORD));
+	}
+
+	/**
+	 * Evaluates all priority rules for the given pet and collects the reasons for every
+	 * rule that matched.
+	 * @param pet the pet to evaluate
+	 * @return a {@link PetPriority} describing whether the pet is a priority patient and
+	 * why
+	 */
+	public PetPriority getPriority(Pet pet) {
+		List<String> reasons = new ArrayList<>();
+
+		if (isFrequentVisitor(pet)) {
+			reasons.add("The pet has had 3 or more visits in the last 12 months (frequent client)");
+		}
+		if (isSenior(pet)) {
+			reasons.add("The pet is older than 8 years (senior pet, needs more attentive care)");
+		}
+		if (hasEmergencyHistory(pet)) {
+			reasons.add(
+					"The pet has a visit with a description containing \"emergency\" (had an emergency case in its history)");
+		}
+
+		return new PetPriority(!reasons.isEmpty(), reasons);
 	}
 
 }

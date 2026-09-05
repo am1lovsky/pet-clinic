@@ -38,6 +38,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
@@ -66,6 +68,9 @@ class PetControllerTests {
 
 	@MockitoBean
 	private PetTypeRepository types;
+
+	@MockitoBean
+	private VisitService visitService;
 
 	@BeforeEach
 	void setup() {
@@ -209,6 +214,26 @@ class PetControllerTests {
 			.param("birthDate", "2015-02-12"))
 			.andExpect(status().is3xxRedirection())
 			.andExpect(view().name("redirect:/owners/{ownerId}"));
+	}
+
+	@Test
+	void processIsNeedVisit() throws Exception {
+		given(this.visitService.isNeedVisit(any())).willReturn(true);
+		mockMvc.perform(get("/owners/{ownerId}/pets/{petId}/is-need-visit", TEST_OWNER_ID, TEST_PET_ID))
+			.andExpect(status().isOk())
+			.andExpect(content().string("true"));
+	}
+
+	@Test
+	void processGetPriority() throws Exception {
+		PetPriority priority = new PetPriority(true,
+				List.of("The pet is older than 8 years (senior pet, needs more attentive care)"));
+		given(this.visitService.getPriority(any(Pet.class))).willReturn(priority);
+		mockMvc.perform(get("/owners/{ownerId}/pets/{petId}/priority", TEST_OWNER_ID, TEST_PET_ID))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.priority").value(true))
+			.andExpect(jsonPath("$.reasons[0]")
+				.value("The pet is older than 8 years (senior pet, needs more attentive care)"));
 	}
 
 	@Nested
