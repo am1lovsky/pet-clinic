@@ -1,6 +1,36 @@
-# Spring PetClinic Sample Application [![Build Status](https://github.com/spring-projects/spring-petclinic/actions/workflows/maven-build.yml/badge.svg)](https://github.com/spring-projects/spring-petclinic/actions/workflows/maven-build.yml)[![Build Status](https://github.com/spring-projects/spring-petclinic/actions/workflows/gradle-build.yml/badge.svg)](https://github.com/spring-projects/spring-petclinic/actions/workflows/gradle-build.yml)
+# Spring PetClinic — with custom enhancements [![Build Status](https://github.com/am1lovsky/pet-clinic/actions/workflows/maven-build.yml/badge.svg)](https://github.com/am1lovsky/pet-clinic/actions/workflows/maven-build.yml)[![Build Status](https://github.com/am1lovsky/pet-clinic/actions/workflows/gradle-build.yml/badge.svg)](https://github.com/am1lovsky/pet-clinic/actions/workflows/gradle-build.yml)
 
-[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/spring-projects/spring-petclinic) [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://github.com/codespaces/new?hide_repo_select=true&ref=main&repo=7517918)
+## About this repository
+
+This is a fork of the official [Spring PetClinic](https://github.com/spring-projects/spring-petclinic) sample application — a reference Spring Boot project maintained by the Spring team. I use it as a playground to practice Spring Boot/Spring Data JPA and to build small, self-contained features on top of a realistic, well-tested codebase.
+
+Everything under `Custom functionality` below is my own work, added on top of the upstream project. Everything else (the base domain model, views, and infrastructure) comes from upstream Spring PetClinic.
+
+## Custom functionality
+
+### Visit booking validation
+New rules enforced when an owner books a visit for a pet (`VisitService`):
+- a visit can't be booked for today or a past date;
+- a pet can't have two visits booked on the same day.
+
+Both are surfaced as form validation errors on the existing "book a visit" page.
+
+### Pet priority scoring
+`GET /owners/{ownerId}/pets/{petId}/priority` returns whether a pet should be treated as a priority patient, and why. A pet is flagged as priority if it:
+- has had 3+ visits in the last 12 months (frequent visitor),
+- is older than 8 years (senior pet), or
+- has a visit whose description mentions "emergency".
+
+### Need-visit indicator
+`GET /owners/{ownerId}/pets/{petId}/is-need-visit` returns `true` if a pet has never been seen or its last visit was more than a year ago — a quick signal for staff that a pet is overdue for a checkup.
+
+### Owner pet count
+`GET /owners/{ownerId}/pets/count` returns how many pets an owner has, backed by a single `COUNT` query instead of loading the owner and all of their pets into memory.
+
+### Vet workload tracking
+Visits are now linked to the vet who handled them. `GET /vets/{vetId}/workload` returns a vet's visit count over the last 7 days and flags them as overloaded once that count exceeds 5.
+
+---
 
 ## Understanding the Spring Petclinic application with a few diagrams
 
@@ -19,8 +49,8 @@ Java 17 or later is required for the build, and the application can run with Jav
 You first need to clone the project locally:
 
 ```bash
-git clone https://github.com/spring-projects/spring-petclinic.git
-cd spring-petclinic
+git clone https://github.com/am1lovsky/pet-clinic.git
+cd pet-clinic
 ```
 If you are using Maven, you can start the application on the command-line as follows:
 
@@ -52,10 +82,6 @@ docker images | grep petclinic
 docker run -p 8080:8080 docker.io/library/spring-petclinic:latest
 ```
 
-## In case you find a bug/suggested improvement for Spring Petclinic
-
-Our issue tracker is available [here](https://github.com/spring-projects/spring-petclinic/issues).
-
 ## Database configuration
 
 In its default configuration, Petclinic uses an in-memory database (H2) which
@@ -76,8 +102,8 @@ or
 docker run -e POSTGRES_USER=petclinic -e POSTGRES_PASSWORD=petclinic -e POSTGRES_DB=petclinic -p 5432:5432 postgres:18.4
 ```
 
-Further documentation is provided for [MySQL](https://github.com/spring-projects/spring-petclinic/blob/main/src/main/resources/db/mysql/petclinic_db_setup_mysql.txt)
-and [PostgreSQL](https://github.com/spring-projects/spring-petclinic/blob/main/src/main/resources/db/postgres/petclinic_db_setup_postgres.txt).
+Further documentation is provided for [MySQL](src/main/resources/db/mysql/petclinic_db_setup_mysql.txt)
+and [PostgreSQL](src/main/resources/db/postgres/petclinic_db_setup_postgres.txt).
 
 Instead of vanilla `docker` you can also use the provided `docker-compose.yml` file to start the database containers. Each one has a service named after the Spring profile:
 
@@ -119,7 +145,7 @@ The following items should be installed in your system:
 1. On the command line run:
 
     ```bash
-    git clone https://github.com/spring-projects/spring-petclinic.git
+    git clone https://github.com/am1lovsky/pet-clinic.git
     ```
 
 1. Inside Eclipse or STS:
@@ -130,7 +156,7 @@ The following items should be installed in your system:
 
 1. Inside IntelliJ IDEA:
 
-    In the main menu, choose `File -> Open` and select the Petclinic [pom.xml](pom.xml). Click on the `Open` button.
+    In the main menu, choose `File -> Open` and select the Petclinic [pom.xml](pom.xml). Click on the `Open` button.
 
     - CSS files are generated from the Maven build. You can build them on the command line `./mvnw generate-resources` or right-click on the `spring-petclinic` project then `Maven -> Generates sources and Update Folders`.
 
@@ -140,39 +166,10 @@ The following items should be installed in your system:
 
     Visit [http://localhost:8080](http://localhost:8080) in your browser.
 
-## Looking for something in particular?
+## Upstream project
 
-|Spring Boot Configuration | Class or Java property files  |
-|--------------------------|---|
-|The Main Class | [PetClinicApplication](https://github.com/spring-projects/spring-petclinic/blob/main/src/main/java/org/springframework/samples/petclinic/PetClinicApplication.java) |
-|Properties Files | [application.properties](https://github.com/spring-projects/spring-petclinic/blob/main/src/main/resources) |
-|Caching | [CacheConfiguration](https://github.com/spring-projects/spring-petclinic/blob/main/src/main/java/org/springframework/samples/petclinic/system/CacheConfiguration.java) |
-
-## Interesting Spring Petclinic branches and forks
-
-The Spring Petclinic "main" branch in the [spring-projects](https://github.com/spring-projects/spring-petclinic)
-GitHub org is the "canonical" implementation based on Spring Boot and Thymeleaf. There are
-[quite a few forks](https://spring-petclinic.github.io/docs/forks.html) in the GitHub org
-[spring-petclinic](https://github.com/spring-petclinic). If you are interested in using a different technology stack to implement the Pet Clinic, please join the community there.
-
-## Interaction with other open-source projects
-
-One of the best parts about working on the Spring Petclinic application is that we have the opportunity to work in direct contact with many Open Source projects. We found bugs/suggested improvements on various topics such as Spring, Spring Data, Bean Validation and even Eclipse! In many cases, they've been fixed/implemented in just a few days.
-Here is a list of them:
-
-| Name | Issue |
-|------|-------|
-| Spring JDBC: simplify usage of NamedParameterJdbcTemplate | [SPR-10256](https://github.com/spring-projects/spring-framework/issues/14889) and [SPR-10257](https://github.com/spring-projects/spring-framework/issues/14890) |
-| Bean Validation / Hibernate Validator: simplify Maven dependencies and backward compatibility |[HV-790](https://hibernate.atlassian.net/browse/HV-790) and [HV-792](https://hibernate.atlassian.net/browse/HV-792) |
-| Spring Data: provide more flexibility when working with JPQL queries | [DATAJPA-292](https://github.com/spring-projects/spring-data-jpa/issues/704) |
-
-## Contributing
-
-The [issue tracker](https://github.com/spring-projects/spring-petclinic/issues) is the preferred channel for bug reports, feature requests and submitting pull requests.
-
-For pull requests, editor preferences are available in the [editor config](.editorconfig) for easy use in common text editors. Read more and download plugins at <https://editorconfig.org>. All commits must include a __Signed-off-by__ trailer at the end of each commit message to indicate that the contributor agrees to the Developer Certificate of Origin.
-For additional details, please refer to the blog post [Hello DCO, Goodbye CLA: Simplifying Contributions to Spring](https://spring.io/blog/2025/01/06/hello-dco-goodbye-cla-simplifying-contributions-to-spring).
+This fork is based on [spring-projects/spring-petclinic](https://github.com/spring-projects/spring-petclinic), the canonical Spring Boot + Thymeleaf implementation maintained by the Spring team. For the original project's issue tracker, related forks, and Spring ecosystem context, see the upstream repository.
 
 ## License
 
-The Spring PetClinic sample application is released under version 2.0 of the [Apache License](https://www.apache.org/licenses/LICENSE-2.0).
+The Spring PetClinic sample application, and the enhancements in this fork, are released under version 2.0 of the [Apache License](https://www.apache.org/licenses/LICENSE-2.0).
