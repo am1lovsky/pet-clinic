@@ -257,6 +257,14 @@ class OwnerControllerTests {
 	}
 
 	@Test
+	void getPetsCount() throws Exception {
+		given(this.owners.countPetsByOwnerId(TEST_OWNER_ID)).willReturn(1);
+		mockMvc.perform(get("/owners/{ownerId}/pets/count", TEST_OWNER_ID))
+			.andExpect(status().isOk())
+			.andExpect(content().string("1"));
+	}
+
+	@Test
 	void processUpdateOwnerFormWithIdMismatch() throws Exception {
 		int pathOwnerId = 1;
 

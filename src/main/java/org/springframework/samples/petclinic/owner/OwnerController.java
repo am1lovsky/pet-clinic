@@ -32,6 +32,7 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.ModelAndView;
 
 import jakarta.validation.Valid;
@@ -174,6 +175,17 @@ class OwnerController {
 				"Owner not found with id: " + ownerId + ". Please ensure the ID is correct "));
 		mav.addObject(owner);
 		return mav;
+	}
+
+	/**
+	 * Custom handler for displaying the number of pets an owner has, without loading the
+	 * owner or its pets into memory.
+	 * @param ownerId the ID of the owner
+	 * @return the count of pets belonging to the owner
+	 */
+	@GetMapping("/owners/{ownerId}/pets/count")
+	public @ResponseBody int getPetsCount(@PathVariable("ownerId") int ownerId) {
+		return this.owners.countPetsByOwnerId(ownerId);
 	}
 
 }
