@@ -37,6 +37,7 @@ import org.springframework.samples.petclinic.owner.Pet;
 import org.springframework.samples.petclinic.owner.PetType;
 import org.springframework.samples.petclinic.owner.PetTypeRepository;
 import org.springframework.samples.petclinic.owner.Visit;
+import org.springframework.samples.petclinic.owner.VisitService;
 import org.springframework.samples.petclinic.vet.Vet;
 import org.springframework.samples.petclinic.vet.VetRepository;
 import org.springframework.transaction.annotation.Transactional;
@@ -75,6 +76,8 @@ import org.springframework.transaction.annotation.Transactional;
 // @TestPropertySource("/application-postgres.properties")
 class ClinicServiceTests {
 
+	private final VisitService visitService = new VisitService();
+
 	@Autowired
 	protected OwnerRepository owners;
 
@@ -93,6 +96,34 @@ class ClinicServiceTests {
 
 		owners = this.owners.findByLastNameStartingWith("Daviss", pageable);
 		assertThat(owners).isEmpty();
+	}
+
+	@Test
+	void shouldReturnTrueIfDateIsPast() {
+		boolean result = visitService.isPastDate(LocalDate.now().minusDays(1));
+		assertThat(result).isTrue();
+	}
+
+	@Test
+	void shouldReturnTrueIfExistsOtherVisitOnSameDate() {
+		Visit existingVisit = new Visit();
+		existingVisit.setDate(LocalDate.now());
+		Pet pet = new Pet();
+		Visit newVisit = new Visit();
+		newVisit.setDate(LocalDate.now());
+		pet.addVisit(existingVisit);
+		boolean result = visitService.hasVisitOnSameDay(pet, newVisit);
+		assertThat(result).isTrue();
+	}
+
+	@Test
+	void shouldReturnFalseIfNoOtherVisitOnSameDate() {
+		Visit visit = new Visit();
+		visit.setDate(LocalDate.now().plusDays(1));
+		Pet pet = new Pet();
+		pet.addVisit(visit);
+		boolean result = visitService.hasVisitOnSameDay(pet, visit);
+		assertThat(result).isFalse();
 	}
 
 	@Test

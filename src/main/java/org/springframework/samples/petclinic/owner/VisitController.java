@@ -44,8 +44,11 @@ class VisitController {
 
 	private final OwnerRepository owners;
 
-	public VisitController(OwnerRepository owners) {
+	private final VisitService visitService;
+
+	public VisitController(OwnerRepository owners, VisitService visitService) {
 		this.owners = owners;
+		this.visitService = visitService;
 	}
 
 	@InitBinder
@@ -97,8 +100,13 @@ class VisitController {
 	@PostMapping("/owners/{ownerId}/pets/{petId}/visits/new")
 	public String processNewVisitForm(@ModelAttribute Owner owner, @PathVariable int petId, @Valid Visit visit,
 			BindingResult result, RedirectAttributes redirectAttributes) {
-		if (visit.getDate() != null && !visit.getDate().isAfter(LocalDate.now())) {
-			result.rejectValue("date", "typeMismatch.visitDate");
+
+		Pet pet = owner.getPet(petId);
+		if (visitService.isPastDate(visit.getDate())) {
+			result.rejectValue("date", "typeMismatch.visitDate", "Visit date cannot be in the past");
+		}
+		else if (visitService.hasVisitOnSameDay(pet, visit)) {
+			result.rejectValue("date", "duplicate", "This pet already has a visit booked on this day");
 		}
 
 		if (result.hasErrors()) {

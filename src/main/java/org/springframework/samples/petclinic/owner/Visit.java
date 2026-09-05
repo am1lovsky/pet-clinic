@@ -24,6 +24,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
 /**
  * Simple JavaBean domain object representing a visit.
@@ -35,6 +36,7 @@ import jakarta.validation.constraints.NotBlank;
 @Table(name = "visits")
 public class Visit extends BaseEntity {
 
+	@NotNull
 	@Column(name = "visit_date")
 	@DateTimeFormat(pattern = "yyyy-MM-dd")
 	private LocalDate date;
