@@ -16,6 +16,8 @@
 
 package org.springframework.samples.petclinic.vet;
 
+import java.util.Optional;
+
 import org.assertj.core.util.Lists;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -50,6 +52,9 @@ class VetControllerTests {
 
 	@MockitoBean
 	private VetRepository vets;
+
+	@MockitoBean
+	private VetService vetService;
 
 	private Vet james() {
 		Vet james = new Vet();
@@ -95,6 +100,29 @@ class VetControllerTests {
 			.andExpect(status().isOk());
 		actions.andExpect(content().contentType(MediaType.APPLICATION_JSON))
 			.andExpect(jsonPath("$.vetList[0].id").value(1));
+	}
+
+	@Test
+	void showWorkloadOfVet() throws Exception {
+		given(this.vets.findById(1)).willReturn(Optional.of(james()));
+
+		Workload workload = new Workload();
+		workload.setVisitCount(6);
+		workload.setOverloaded(true);
+		given(this.vetService.getWorkload(any(Vet.class))).willReturn(workload);
+
+		mockMvc.perform(get("/vets/{vetId}/workload", 1).accept(MediaType.APPLICATION_JSON))
+			.andExpect(status().isOk())
+			.andExpect(content().contentType(MediaType.APPLICATION_JSON))
+			.andExpect(jsonPath("$.overloaded").value(true))
+			.andExpect(jsonPath("$.visitCount").value(6));
+	}
+
+	@Test
+	void showWorkloadOfUnknownVetReturnsNotFound() throws Exception {
+		given(this.vets.findById(99)).willReturn(Optional.empty());
+
+		mockMvc.perform(get("/vets/{vetId}/workload", 99)).andExpect(status().isNotFound());
 	}
 
 }

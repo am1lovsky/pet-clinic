@@ -20,11 +20,14 @@ import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.server.ResponseStatusException;
 
 /**
  * @author Juergen Hoeller
@@ -37,8 +40,11 @@ class VetController {
 
 	private final VetRepository vetRepository;
 
-	public VetController(VetRepository vetRepository) {
+	private final VetService vetService;
+
+	public VetController(VetRepository vetRepository, VetService vetService) {
 		this.vetRepository = vetRepository;
+		this.vetService = vetService;
 	}
 
 	@GetMapping("/vets.html")
@@ -69,6 +75,13 @@ class VetController {
 		Vets vets = new Vets();
 		vets.getVetList().addAll(this.vetRepository.findAll());
 		return vets;
+	}
+
+	@GetMapping("/vets/{vetId}/workload")
+	public @ResponseBody Workload getWorkload(@PathVariable("vetId") int vetId) {
+		Vet vet = vetRepository.findById(vetId)
+			.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Vet not found: " + vetId));
+		return vetService.getWorkload(vet);
 	}
 
 }
